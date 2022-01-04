@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:email="http://www.mulesoft.org/schema/mule/email"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="22cbbe76-515f-43e2-b215-7c5c3d6948e5" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="b54286a5-f7b0-4c29-97f0-8ad183497b52" >
+		<http:request-connection host="localhost" />
+	</http:request-config>
+	<flow name="errorhandler_assignmentFlow" doc:id="274a5781-34a8-4743-8f1d-387fd42f874c" >
+		<http:listener doc:name="Listener" doc:id="2f2d7a1d-dac2-4f1d-9642-866a29c8bca8" config-ref="HTTP_Listener_config" path="/errorhandler">
+			<http:error-response >
+				<http:body ><![CDATA[#[payload]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<set-payload value='#["It is before the flow ref"]' doc:name="Set Payload" doc:id="81bcf734-bc41-4882-b18a-a1373d60fadb" />
+		<flow-ref doc:name="Flow Reference" doc:id="2d188598-cd0d-4b8d-b69c-5d8f0d11eb9d" name="errorhandler_assignmentFlow1"/>
+		<set-payload value='#["this is after flow reference"]' doc:name="Set Payload" doc:id="8d9b566b-8f94-494e-80d5-68d0c15ab2aa" />
+	</flow>
+	<flow name="errorhandler_assignmentFlow1" doc:id="10fb4de4-a69e-48ab-aac8-d72f7797aad9" >
+		<http:request method="GET" doc:name="Request" doc:id="935ccb21-fafb-4dfa-833a-f1f517e5a5d3" config-ref="HTTP_Request_configuration" url="h/www.makemytrip.co"/>
+		<ee:transform doc:name="Transform Message" doc:id="c5af1a2a-313b-4f31-b62c-234d50575f17" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+"Message" : error.description]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="2a848946-f0b3-4849-9d4b-865685c15b41" type="HTTP:CONNECTIVITY">
+				<set-payload value='#["It is inside error handler of private flow"]' doc:name="Set Payload" doc:id="716251d2-f70b-4d79-9738-1cb5f10ffadd" />
+			</on-error-continue>
+		</error-handler>
+	</flow>
+	<flow name="errorhandler_assignmentFlow2" doc:id="dbe68f00-881f-4632-9bce-50eb7d731eb0" >
+		<http:listener doc:name="Listener" doc:id="3c06f4c0-31da-4833-ba37-a4d57606cbde" config-ref="HTTP_Listener_config" path="/propagate">
+			<http:error-response >
+				<http:body ><![CDATA[#[payload]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<set-payload value="#[payload]" doc:name="Set Payload" doc:id="f1522cd0-608a-4e79-a0a7-721b66186280" />
+		<flow-ref doc:name="Flow Reference" doc:id="8987cd8c-d665-40a6-8f5c-f4f3b08c054a" name="errorhandler_assignmentFlow3"/>
+		<set-payload value='#["error handler inside main flow"]' doc:name="Set Payload" doc:id="2098c3b6-6eb1-481a-9674-deac784579ec" />
+	</flow>
+	<flow name="errorhandler_assignmentFlow5" doc:id="6fc81152-32ef-4c31-a117-7819f2801d2c" >
+		<http:listener doc:name="Listener" doc:id="9ebadbac-5255-48a0-a60a-338eff7c0ec7" config-ref="HTTP_Listener_config" path="/component"/>
+		<set-payload value='501' doc:name="Set Payload" doc:id="7967c1ab-565b-4429-8fb1-c9aef3a1782d" />
+		<try doc:name="Try" doc:id="f1aa13d4-8f03-4b05-811a-cccd1b147c16" >
+			<validation:is-number numberType="INTEGER" doc:name="Is number" doc:id="e8416d53-8dd4-4851-8633-2c13145fec90" value="#[payload]" minValue="500" maxValue="1000"/>
+			<error-handler >
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="b4e27349-be72-4b91-a954-0ab0ef04c03e" type="VALIDATION:INVALID_NUMBER">
+					<set-payload value='#["inside the error hansdled"]' doc:name="Set Payload" doc:id="b858da7d-3722-441c-bcf1-d485f2bb8956" />
+				</on-error-continue>
+			</error-handler>
+		</try>
+		<ee:transform doc:name="Transform Message" doc:id="28c4981f-cd93-4102-b15f-8d183a2e0c19">
+				<ee:message>
+					<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+	</flow>
+	<flow name="errorhandler_assignmentFlow3" doc:id="3d596e24-6d38-4ed7-a80c-bb64c4dac768" >
+		<http:request method="GET" doc:name="Request" doc:id="0ff1cfd4-59ad-41e2-a7f0-b3809ce4145e" config-ref="HTTP_Request_configuration" url="//www.w3schools.com/xml/tempconvert.asmx?op=CelsiusToFahrenheit"/>
+		<ee:transform doc:name="Transform Message" doc:id="ee4b2fbd-96e1-46f0-8854-5705d0c6c4b1">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+
+"message": error.description
+
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="1b3dba69-1a71-42d0-8585-91d3d2747266" type="HTTP:CONNECTIVITY">
+				<set-payload value='#["inside the propagate error handler"]' doc:name="Set Payload" doc:id="d4156a9b-762d-4714-9128-7fd7688c097d" />
+				<logger level="INFO" doc:name="Logger" doc:id="aff99791-10f7-4a52-9f87-45a96be5cccb" message='#["inside the propagate"]'/>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+	<flow name="errorhandler_assignmentFlow4" doc:id="dec2eb8e-14ff-44e7-b59b-65087dd332c0" >
+		<http:listener doc:name="Listener" doc:id="01b2d44b-682e-4855-937f-d242626752e6" config-ref="HTTP_Listener_config" path="/raise"/>
+		<choice doc:name="Choice" doc:id="4ddd3102-e422-48f4-9417-e13e01d4250e" >
+			<when expression="#[isEmpty(payload)]">
+				<raise-error doc:name="Raise error" doc:id="e93a7027-730a-4cbf-a217-471076e2f57f" type="NO:PAYLOAD" description="no payload is received"/>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="24f95b3c-9d9f-410e-a934-ef76fb6a32dd" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+
+payload]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="d15cc916-51dd-421a-a395-9ebcb4c9c57b" type="NO:PAYLOAD">
+				<ee:transform doc:name="Transform Message" doc:id="15653d91-d342-447b-9f91-55fd51d756dc" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+
+"My payload"]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+</mule>
